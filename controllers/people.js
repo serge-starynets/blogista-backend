@@ -1,10 +1,9 @@
 const peopleRouter = require('express').Router();
 const Person = require('../models/person');
 
-peopleRouter.get('/', (req, res) => {
-	Person.find({}).then((persons) => {
-		res.json(persons);
-	});
+peopleRouter.get('/', async (req, res) => {
+	const people = await Person.find({});
+	res.json(people);
 });
 
 // peopleRouter.get('/info', (req, res) => {
@@ -19,19 +18,20 @@ peopleRouter.get('/', (req, res) => {
 // 	});
 // });
 
-peopleRouter.get('/:id', (req, res, next) => {
-	Person.findById(req.params.id)
-		.then((person) => {
-			if (person) {
-				res.json(person);
-			} else {
-				res.status(404).end();
-			}
-		})
-		.catch((error) => next(error));
+peopleRouter.get('/:id', async (req, res, next) => {
+	try {
+		const person = await Person.findById(req.params.id);
+		if (person) {
+			res.json(person);
+		} else {
+			res.status(404).end();
+		}
+	} catch (error) {
+		next(error);
+	}
 });
 
-peopleRouter.post('/', (req, res, next) => {
+peopleRouter.post('/', async (req, res, next) => {
 	const body = req.body;
 	if (!body.name || !body.number) {
 		return res.status(400).json({
@@ -44,41 +44,41 @@ peopleRouter.post('/', (req, res, next) => {
 		number: body.number,
 	});
 
-	person
-		.save()
-		.then((savedPerson) => {
-			res.json(savedPerson);
-		})
-		.catch((err) => {
-			next(err);
-		});
+	try {
+		const savedPerson = await person.save();
+		res.status(201).json(savedPerson);
+	} catch (error) {
+		next(error);
+	}
 });
 
-peopleRouter.put('/:id', (req, res, next) => {
+peopleRouter.put('/:id', async (req, res, next) => {
 	const { name, number } = req.body;
 
-	Person.findById(req.params.id)
-		.then((person) => {
-			if (!person) {
-				res.status(404).end();
-			}
-			person.name = name;
-			person.number = number;
+	try {
+		const person = await Person.findById(req.params.id);
+		if (!person) {
+			res.status(404).end();
+		}
+		person.name = name;
+		person.number = number;
 
-			return person.save().then((updatedPerson) => {
-				res.json(updatedPerson);
-			});
-		})
-		.catch((err) => next(err));
+		const updatedPerson = await person.save();
+		res.json(updatedPerson);
+	} catch (error) {
+		next(error);
+	}
 });
 
-peopleRouter.delete('/:id', (req, res, next) => {
+peopleRouter.delete('/:id', async (req, res, next) => {
 	const id = req.params.id;
-	Person.findByIdAndDelete(id)
-		.then((result) => {
-			res.status(204).end();
-		})
-		.catch((err) => next(err));
+
+	try {
+		await Person.findByIdAndDelete(id);
+		res.status(204).end();
+	} catch (error) {
+		next(error);
+	}
 });
 
 module.exports = peopleRouter;

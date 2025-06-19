@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js",
+    "start": "NODE_ENV=production node index.js",
+    "dev": "NODE_ENV=development node --watch index.js",
     "build:ui": "rm -rf build && cd ../phonebook && npm run build && cp -r build ../phonebook-backend",
     "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "NODE_ENV=test node --test",
+    "test:only": "NODE_ENV=test node --test --test-only",
     "lint": "eslint .",
     "lint:fix": "eslint --fix"
   },
@@ -24,6 +25,7 @@
     "@eslint/js": "^9.29.0",
     "@stylistic/eslint-plugin-js": "^4.4.1",
     "eslint": "^9.29.0",
-    "globals": "^16.2.0"
+    "globals": "^16.2.0",
+    "supertest": "^7.1.1"
   }
 }
