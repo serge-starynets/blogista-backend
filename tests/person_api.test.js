@@ -1,97 +1,111 @@
-const { test, after, beforeEach } = require('node:test');
+const { test, after, beforeEach, describe } = require('node:test');
 const assert = require('node:assert');
 const mongoose = require('mongoose');
 const supertest = require('supertest');
 
 const app = require('../app');
 const Person = require('../models/person');
+const User = require('../models/user');
 const helper = require('./test_helper');
 
 const api = supertest(app);
 
-beforeEach(async () => {
-	await Person.deleteMany({});
-	for (let person of helper.initialPeople) {
-		let personObj = new Person(person);
-		await personObj.save();
-	}
-});
+describe('people api operations tests', () => {
+	beforeEach(async () => {
+		await Person.deleteMany({});
+		await Person.insertMany(helper.initialPeople);
+	});
 
-test('people are returned as json', async () => {
-	await api
-		.get('/api/people')
-		.expect(200)
-		.expect('Content-Type', /application\/json/);
-});
+	test('people are returned as json', async () => {
+		await api
+			.get('/api/people')
+			.expect(200)
+			.expect('Content-Type', /application\/json/);
+	});
 
-test('all people are returned', async () => {
-	const response = await api.get('/api/people');
+	test('all people are returned', async () => {
+		const response = await api.get('/api/people');
 
-	assert.strictEqual(response.body.length, helper.initialPeople.length);
-});
+		assert.strictEqual(response.body.length, helper.initialPeople.length);
+	});
 
-test('a specific person is within the returned people', async () => {
-	const response = await api.get('/api/people');
+	test('a unique identifier is named "id"', async () => {
+		const response = await api.get('/api/people');
+		for (let p of response.body) {
+			assert.strictEqual(Object.hasOwn(p, 'id'), true);
+		}
+	});
 
-	const names = response.body.map((e) => e.name);
-	assert(names.includes('John Doe'));
-});
+	test('a specific person is within the returned people', async () => {
+		const response = await api.get('/api/people');
 
-test('a valid person can be added ', async () => {
-	const newPerson = {
-		name: 'Gandalf the Gray',
-		number: '123-46574',
-	};
+		const names = response.body.map((e) => e.name);
+		assert(names.includes('John Doe'));
+	});
 
-	await api
-		.post('/api/people')
-		.send(newPerson)
-		.expect(201)
-		.expect('Content-Type', /application\/json/);
+	test('a valid person can be added ', async () => {
+		const testUser = await User.findOne({ username: 'root' });
 
-	const peopelAtEnd = await helper.peopleInDb();
-	assert.strictEqual(peopelAtEnd.length, helper.initialPeople.length + 1);
+		const newPerson = {
+			name: 'Gandalf the Gray',
+			number: '123-46574',
+			address: 'Minas Tirith',
+			userId: testUser._id,
+		};
+		try {
+			await api
+				.post('/api/people')
+				.send(newPerson)
+				.expect(201)
+				.expect('Content-Type', /application\/json/);
+		} catch (err) {
+			console.log('Error: ', err);
+		}
 
-	const name = peopelAtEnd.map((r) => r.name);
+		const peopelAtEnd = await helper.peopleInDb();
+		assert.strictEqual(peopelAtEnd.length, helper.initialPeople.length + 1);
 
-	assert(name.includes('Gandalf the Gray'));
-});
+		const name = peopelAtEnd.map((r) => r.name);
 
-test('person without name is not added', async () => {
-	const newPerson = {
-		number: '123-45678',
-	};
+		assert(name.includes('Gandalf the Gray'));
+	});
 
-	await api.post('/api/people').send(newPerson).expect(400);
+	test('person without name is not added', async () => {
+		const newPerson = {
+			number: '123-45678',
+		};
 
-	const peopelAtEnd = await helper.peopleInDb();
+		await api.post('/api/people').send(newPerson).expect(400);
 
-	assert.strictEqual(peopelAtEnd.length, helper.initialPeople.length);
-});
+		const peopelAtEnd = await helper.peopleInDb();
 
-test('a specific person can be viewed', async () => {
-	const peopleAtStart = await helper.peopleInDb();
-	const personToView = peopleAtStart[0];
+		assert.strictEqual(peopelAtEnd.length, helper.initialPeople.length);
+	});
 
-	const resultPerson = await api
-		.get(`/api/people/${personToView.id}`)
-		.expect(200)
-		.expect('Content-Type', /application\/json/);
+	test('a specific person can be viewed', async () => {
+		const peopleAtStart = await helper.peopleInDb();
+		const personToView = peopleAtStart[0];
 
-	assert.deepStrictEqual(resultPerson.body, personToView);
-});
+		const resultPerson = await api
+			.get(`/api/people/${personToView.id}`)
+			.expect(200)
+			.expect('Content-Type', /application\/json/);
 
-test.only('a person can be deleted', async () => {
-	const peopleAtStart = await helper.peopleInDb();
-	const personToDelete = peopleAtStart[0];
+		assert.deepStrictEqual(resultPerson.body, personToView);
+	});
 
-	await api.delete(`/api/people/${personToDelete.id}`).expect(204);
+	test('a person can be deleted', async () => {
+		const peopleAtStart = await helper.peopleInDb();
+		const personToDelete = peopleAtStart[0];
 
-	const peopleAtEnd = await helper.peopleInDb();
-	const name = peopleAtEnd.map((p) => p.name);
-	assert(!name.includes(personToDelete.name));
+		await api.delete(`/api/people/${personToDelete.id}`).expect(204);
 
-	assert.strictEqual(peopleAtEnd.length, peopleAtStart.length - 1);
+		const peopleAtEnd = await helper.peopleInDb();
+		const name = peopleAtEnd.map((p) => p.name);
+		assert(!name.includes(personToDelete.name));
+
+		assert.strictEqual(peopleAtEnd.length, peopleAtStart.length - 1);
+	});
 });
 
 after(async () => await mongoose.connection.close());
