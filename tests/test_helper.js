@@ -6,7 +6,7 @@ const initialBlogs = [
 		url: 'lalala',
 		title: 'so what?',
 		author: 'P.J.',
-		user: '6857a9da7fa5f30164931e5a',
+		user: '685905c0a3a9fac1965e62d1',
 	},
 	{
 		url: 'lalala2',
