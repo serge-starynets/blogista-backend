@@ -8,10 +8,10 @@ const passwordValidator = (password) => {
 };
 
 usersRouter.get('/', async (req, res) => {
-	const users = await User.find({}).populate('phonebookEntries', {
-		name: 1,
-		number: 1,
-		address: 1,
+	const users = await User.find({}).populate('blogs', {
+		url: 1,
+		title: 1,
+		author: 1,
 	});
 
 	res.json(users);

@@ -15,7 +15,11 @@ describe('users', () => {
 		await User.deleteMany({});
 
 		const passwordHash = await bcrypt.hash('$ecRe7', 10);
-		const user = new User({ username: 'root', passwordHash });
+		const user = new User({
+			username: 'root',
+			name: 'root user',
+			passwordHash,
+		});
 
 		await user.save();
 	});

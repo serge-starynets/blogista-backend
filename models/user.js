@@ -16,10 +16,10 @@ const userSchema = new mongoose.Schema({
 		match: /^[a-zA-Z0-9 ]+$/,
 	},
 	passwordHash: String,
-	phonebookEntries: [
+	blogs: [
 		{
 			type: mongoose.Schema.Types.ObjectId,
-			ref: 'Person',
+			ref: 'Blog',
 		},
 	],
 });
